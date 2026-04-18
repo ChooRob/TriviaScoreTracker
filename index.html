@@ -1,219 +1,243 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Edit2, Check, RotateCcw, Trophy, Minus } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivia Score Tracker</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel for in-browser JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-export default function App() {
-  const [players, setPlayers] = useState([
-    { id: 1, name: 'Player 1', score: 0, isEditing: false }
-  ]);
-
-  // Derived state to find the highest score for the "Trophy" icon
-  const highestScore = Math.max(...players.map(p => p.score), 0);
-
-  const addPlayer = () => {
-    const newId = players.length > 0 ? Math.max(...players.map(p => p.id)) + 1 : 1;
-    setPlayers([
-      ...players, 
-      { id: newId, name: `Player ${newId}`, score: 0, isEditing: true }
-    ]);
-  };
-
-  const removePlayer = (id) => {
-    setPlayers(players.filter(p => p.id !== id));
-  };
-
-  const incrementScore = (id) => {
-    setPlayers(players.map(p => 
-      p.id === id ? { ...p, score: p.score + 1 } : p
-    ));
-  };
-
-  const decrementScore = (id) => {
-    setPlayers(players.map(p => 
-      p.id === id ? { ...p, score: Math.max(0, p.score - 1) } : p
-    ));
-  };
-
-  const toggleEdit = (id) => {
-    setPlayers(players.map(p => 
-      p.id === id ? { ...p, isEditing: !p.isEditing } : p
-    ));
-  };
-
-  const updateName = (id, newName) => {
-    setPlayers(players.map(p => 
-      p.id === id ? { ...p, name: newName } : p
-    ));
-  };
-
-  const handleKeyDown = (e, id) => {
-    if (e.key === 'Enter') {
-      toggleEdit(id);
+  <style>
+    /* Custom animation for the crown */
+    @keyframes bounce-slow {
+      0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+      50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
     }
-  };
-
-  const resetAllScores = () => {
-    if (window.confirm("Are you sure you want to reset all scores to 0?")) {
-      setPlayers(players.map(p => ({ ...p, score: 0 })));
+    .animate-bounce-slow {
+      animation: bounce-slow 2s infinite;
     }
-  };
+  </style>
+</head>
+<body class="bg-slate-100">
+  <div id="root"></div>
 
-  return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8 font-sans selection:bg-indigo-200">
-      <div className="max-w-4xl mx-auto">
-        
-        {/* Header */}
-        <header className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-3 text-indigo-600">
-            <Trophy className="w-8 h-8" />
-            <h1 className="text-3xl font-bold tracking-tight text-slate-800">Trivia Tracker</h1>
-          </div>
-          
-          <div className="flex gap-3 w-full sm:w-auto">
-            <button 
-              onClick={resetAllScores}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors active:scale-95"
-            >
-              <RotateCcw className="w-5 h-5" />
-              Reset
-            </button>
-            <button 
-              onClick={addPlayer}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-colors active:scale-95"
-            >
-              <Plus className="w-5 h-5" />
-              Add Player
-            </button>
-          </div>
-        </header>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
 
-        {/* Players Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {players.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-slate-500 bg-white rounded-2xl border border-dashed border-slate-300">
-              <p className="text-lg">No players added yet.</p>
-              <p className="text-sm">Click "Add Player" to start tracking scores!</p>
+    // Inline SVG Icon Components (Replaces lucide-react)
+    const Trophy = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>);
+    const RotateCcw = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>);
+    const Plus = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>);
+    const Check = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>);
+    const Edit2 = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>);
+    const Trash2 = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>);
+    const Minus = ({ className }) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>);
+
+    function App() {
+      const [players, setPlayers] = useState([
+        { id: 1, name: 'Player 1', score: 0, isEditing: false }
+      ]);
+
+      const highestScore = Math.max(...players.map(p => p.score), 0);
+
+      const addPlayer = () => {
+        const newId = players.length > 0 ? Math.max(...players.map(p => p.id)) + 1 : 1;
+        setPlayers([
+          ...players, 
+          { id: newId, name: `Player ${newId}`, score: 0, isEditing: true }
+        ]);
+      };
+
+      const removePlayer = (id) => {
+        setPlayers(players.filter(p => p.id !== id));
+      };
+
+      const incrementScore = (id) => {
+        setPlayers(players.map(p => 
+          p.id === id ? { ...p, score: p.score + 1 } : p
+        ));
+      };
+
+      const decrementScore = (id) => {
+        setPlayers(players.map(p => 
+          p.id === id ? { ...p, score: Math.max(0, p.score - 1) } : p
+        ));
+      };
+
+      const toggleEdit = (id) => {
+        setPlayers(players.map(p => 
+          p.id === id ? { ...p, isEditing: !p.isEditing } : p
+        ));
+      };
+
+      const updateName = (id, newName) => {
+        setPlayers(players.map(p => 
+          p.id === id ? { ...p, name: newName } : p
+        ));
+      };
+
+      const handleKeyDown = (e, id) => {
+        if (e.key === 'Enter') {
+          toggleEdit(id);
+        }
+      };
+
+      const resetAllScores = () => {
+        if (window.confirm("Are you sure you want to reset all scores to 0?")) {
+          setPlayers(players.map(p => ({ ...p, score: 0 })));
+        }
+      };
+
+      return (
+        <div className="min-h-screen p-4 md:p-8 font-sans selection:bg-indigo-200">
+          <div className="max-w-4xl mx-auto">
+            
+            {/* Header */}
+            <header className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 text-indigo-600">
+                <Trophy className="w-8 h-8" />
+                <h1 className="text-3xl font-bold tracking-tight text-slate-800">Trivia Tracker</h1>
+              </div>
+              
+              <div className="flex gap-3 w-full sm:w-auto">
+                <button 
+                  onClick={resetAllScores}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors active:scale-95"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  Reset
+                </button>
+                <button 
+                  onClick={addPlayer}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-sm transition-colors active:scale-95"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Player
+                </button>
+              </div>
+            </header>
+
+            {/* Players Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {players.length === 0 ? (
+                <div className="col-span-full py-12 text-center text-slate-500 bg-white rounded-2xl border border-dashed border-slate-300">
+                  <p className="text-lg">No players added yet.</p>
+                  <p className="text-sm">Click "Add Player" to start tracking scores!</p>
+                </div>
+              ) : (
+                players.map((player) => (
+                  <PlayerCard 
+                    key={player.id} 
+                    player={player} 
+                    highestScore={highestScore}
+                    updateName={updateName}
+                    handleKeyDown={handleKeyDown}
+                    toggleEdit={toggleEdit}
+                    removePlayer={removePlayer}
+                    incrementScore={incrementScore}
+                    decrementScore={decrementScore}
+                  />
+                ))
+              )}
             </div>
-          ) : (
-            players.map((player) => (
-              <PlayerCard 
-                key={player.id} 
-                player={player} 
-                highestScore={highestScore}
-                updateName={updateName}
-                handleKeyDown={handleKeyDown}
-                toggleEdit={toggleEdit}
-                removePlayer={removePlayer}
-                incrementScore={incrementScore}
-                decrementScore={decrementScore}
-              />
-            ))
-          )}
+
+          </div>
         </div>
-
-      </div>
-    </div>
-  );
-}
-
-// Separate component for individual player cards to keep things organized
-function PlayerCard({ 
-  player, 
-  highestScore, 
-  updateName, 
-  handleKeyDown, 
-  toggleEdit, 
-  removePlayer, 
-  incrementScore, 
-  decrementScore 
-}) {
-  const isWinner = player.score > 0 && player.score === highestScore;
-  const inputRef = useRef(null);
-
-  // Auto-focus input when editing starts
-  useEffect(() => {
-    if (player.isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+      );
     }
-  }, [player.isEditing]);
 
-  return (
-    <div className={`relative flex flex-col bg-white rounded-2xl p-5 shadow-sm border transition-all ${
-      isWinner ? 'border-amber-300 ring-4 ring-amber-50' : 'border-slate-200'
-    }`}>
-      
-      {/* Crown for leader */}
-      {isWinner && (
-        <div className="absolute -top-3 -right-3 bg-amber-400 text-white p-2 rounded-full shadow-md animate-bounce-slow">
-          <Trophy className="w-4 h-4" />
+    function PlayerCard({ 
+      player, highestScore, updateName, handleKeyDown, 
+      toggleEdit, removePlayer, incrementScore, decrementScore 
+    }) {
+      const isWinner = player.score > 0 && player.score === highestScore;
+      const inputRef = useRef(null);
+
+      useEffect(() => {
+        if (player.isEditing && inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, [player.isEditing]);
+
+      return (
+        <div className={`relative flex flex-col bg-white rounded-2xl p-5 shadow-sm border transition-all ${
+          isWinner ? 'border-amber-300 ring-4 ring-amber-50' : 'border-slate-200'
+        }`}>
+          
+          {isWinner && (
+            <div className="absolute -top-3 -right-3 bg-amber-400 text-white p-2 rounded-full shadow-md animate-bounce-slow">
+              <Trophy className="w-4 h-4" />
+            </div>
+          )}
+
+          <div className="flex justify-between items-center mb-4 min-h-[2.5rem]">
+            {player.isEditing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={player.name}
+                onChange={(e) => updateName(player.id, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, player.id)}
+                onBlur={() => toggleEdit(player.id)}
+                className="flex-1 text-lg font-bold text-slate-800 bg-slate-50 border-2 border-indigo-300 rounded-lg px-3 py-1 outline-none mr-2 w-full"
+                placeholder="Enter name..."
+              />
+            ) : (
+              <h2 className="text-xl font-bold text-slate-800 truncate pr-2 cursor-pointer" onClick={() => toggleEdit(player.id)}>
+                {player.name}
+              </h2>
+            )}
+
+            <div className="flex gap-1 shrink-0">
+              <button onClick={() => toggleEdit(player.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit Name">
+                {player.isEditing ? <Check className="w-5 h-5 text-emerald-500" /> : <Edit2 className="w-5 h-5" />}
+              </button>
+              <button onClick={() => removePlayer(player.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Remove Player">
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-center py-6 bg-slate-50 rounded-xl mb-4">
+            <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Score</span>
+            <span className="text-6xl font-black text-slate-800 tabular-nums tracking-tighter">
+              {player.score}
+            </span>
+          </div>
+
+          <div className="flex gap-2 mt-auto">
+            <button
+              onClick={() => decrementScore(player.id)}
+              disabled={player.score === 0}
+              className="flex items-center justify-center p-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:hover:bg-slate-100 text-slate-600 rounded-xl transition-colors active:scale-95"
+              aria-label="Decrease Score"
+            >
+              <Minus className="w-6 h-6" />
+            </button>
+            
+            <button
+              onClick={() => incrementScore(player.id)}
+              className="flex-1 flex items-center justify-center gap-2 py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-lg rounded-xl transition-colors active:scale-95 shadow-sm"
+            >
+              <Plus className="w-6 h-6" />
+              Add Point
+            </button>
+          </div>
         </div>
-      )}
+      );
+    }
 
-      {/* Top Bar: Name & Actions */}
-      <div className="flex justify-between items-center mb-4 min-h-[2.5rem]">
-        {player.isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={player.name}
-            onChange={(e) => updateName(player.id, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(e, player.id)}
-            onBlur={() => toggleEdit(player.id)}
-            className="flex-1 text-lg font-bold text-slate-800 bg-slate-50 border-2 border-indigo-300 rounded-lg px-3 py-1 outline-none mr-2 w-full"
-            placeholder="Enter name..."
-          />
-        ) : (
-          <h2 className="text-xl font-bold text-slate-800 truncate pr-2" onClick={() => toggleEdit(player.id)}>
-            {player.name}
-          </h2>
-        )}
-
-        <div className="flex gap-1 shrink-0">
-          <button 
-            onClick={() => toggleEdit(player.id)}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Edit Name"
-          >
-            {player.isEditing ? <Check className="w-5 h-5 text-emerald-500" /> : <Edit2 className="w-5 h-5" />}
-          </button>
-          <button 
-            onClick={() => removePlayer(player.id)}
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-            title="Remove Player"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Score Area */}
-      <div className="flex flex-col items-center justify-center py-6 bg-slate-50 rounded-xl mb-4">
-        <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Score</span>
-        <span className="text-6xl font-black text-slate-800 tabular-nums tracking-tighter">
-          {player.score}
-        </span>
-      </div>
-
-      {/* Controls */}
-      <div className="flex gap-2 mt-auto">
-        <button
-          onClick={() => decrementScore(player.id)}
-          disabled={player.score === 0}
-          className="flex items-center justify-center p-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:hover:bg-slate-100 text-slate-600 rounded-xl transition-colors active:scale-95"
-          aria-label="Decrease Score"
-        >
-          <Minus className="w-6 h-6" />
-        </button>
-        
-        <button
-          onClick={() => incrementScore(player.id)}
-          className="flex-1 flex items-center justify-center gap-2 py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-lg rounded-xl transition-colors active:scale-95 shadow-sm"
-        >
-          <Plus className="w-6 h-6" />
-          Add Point
-        </button>
-      </div>
-
-    </div>
-  );
-}
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
